@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"a-library-for-others/csvparser"
 )
 
 func main() {
@@ -13,6 +15,9 @@ func main() {
 	}
 	defer file.Close()
 
+	csvparser := csvparser.CSVParser{}
+
+	csvparser.ReadLine(file)
 	// var csvparser CSVParser = YourCSVParser{}
 
 	// for {
