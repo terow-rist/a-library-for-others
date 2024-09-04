@@ -2,13 +2,13 @@ package csvparser
 
 import (
 	"errors"
-	"fmt"
 	"io"
 )
 
-type CSVParser struct {
-	line   string
-	fields []string
+type CSVParser interface {
+	ReadLine(r io.Reader) (string, error)
+	GetField(n int) (string, error)
+	GetNumberOfFields() int
 }
 
 var (
@@ -16,32 +16,125 @@ var (
 	ErrFieldCount = errors.New("wrong number of fields")
 )
 
-func (c CSVParser) ReadLine(r io.Reader) (string, error) {
+type DataCSVParser struct {
+	fields []string
+	line   string
+	quotes struct {
+		start bool
+		end   bool
+	}
+}
+
+// Field struct {
+// 	values   []byte
+// 	quoted   bool
+// 	closedBy string
+// }
+
+// "", ""\n ""\r ""\r\n ""EOF
+
+// insideQoutes := false
+
+func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 	var buffer []byte
+	var prevChar byte
 	for {
-		// Create a small buffer to read byte by byte
 		temp := make([]byte, 1)
 		_, err := r.Read(temp)
-		if err == io.EOF {
+		if err != nil {
+			if err == io.EOF {
+				if len(buffer) > 0 {
+					break
+				}
+				if !c.checkQuotes() {
+					return "", ErrQuote
+				} else {
+					c.quotes.end = false
+					c.quotes.start = false
+				}
+				return "", io.EOF
+			}
+			return "", err
+		}
+
+		if temp[0] == '\n' || (temp[0] == '\r' && prevChar != '\n') {
+			if !c.checkQuotes() {
+				return "", ErrQuote
+			} else {
+				c.quotes.end = false
+				c.quotes.start = false
+			}
 			break
 		}
-		if err != nil {
-			fmt.Println("Error reading file:", err)
-			return "", nil
+		if temp[0] == ',' {
+			if !c.checkQuotes() {
+				return "", ErrQuote
+			} else {
+				c.quotes.end = false
+				c.quotes.start = false
+			}
+		}
+		if temp[0] == '"' {
+			if c.quotes.start {
+				c.quotes.end = true
+			}
+			c.quotes.start = true
 		}
 
-		// Collect bytes until a newline is found
-		if temp[0] == '\n' {
-			fmt.Println(string(buffer))
-			buffer = []byte{} // Reset buffer after printing the line
-		} else {
-			buffer = append(buffer, temp[0])
-		}
+		buffer = append(buffer, temp[0])
+		prevChar = temp[0]
+	}
+	if len(buffer) == 0 {
+		return "", io.EOF
+	}
+	line := string(buffer)
+	if invalidAmountQuotes(line) {
+		return "", ErrQuote
 	}
 
-	// Print any remaining data in the buffer
-	if len(buffer) > 0 {
-		fmt.Println(string(buffer))
+	c.fields = separateLine(line)
+	c.line = line
+	return line, nil
+}
+
+func separateLine(line string) []string {
+	tempStr := ""
+	fields := []string{}
+	for i := 0; i < len(line); i++ {
+		if line[i] == ',' {
+			fields = append(fields, tempStr)
+			tempStr = ""
+		}
+		tempStr += string(line[i])
 	}
-	return "", nil
+	if tempStr != "" {
+		fields = append(fields, tempStr)
+	}
+	return fields
+}
+
+func invalidAmountQuotes(line string) bool {
+	counter := 0
+	for _, char := range line {
+		if char == '"' {
+			counter++
+		}
+	}
+	if counter%2 != 0 {
+		return true
+	}
+	return false
+}
+
+func (c DataCSVParser) checkQuotes() bool {
+	if c.quotes.start {
+		if !c.quotes.end {
+			return false
+		}
+	} else {
+		if c.quotes.end {
+			return false
+		}
+	}
+	return true
 }

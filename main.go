@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"a-library-for-others/csvparser"
@@ -15,19 +16,17 @@ func main() {
 	}
 	defer file.Close()
 
-	csvparser := csvparser.CSVParser{}
+	csvparser := csvparser.DataCSVParser{}
 
-	csvparser.ReadLine(file)
-	// var csvparser CSVParser = YourCSVParser{}
-
-	// for {
-	// 	line, err := csvparser.ReadLine(file)
-	// 	if err != nil {
-	// 		if err == io.EOF {
-	// 			break
-	// 		}
-	// 		fmt.Println("Error reading line:", err)
-	// 		return
-	// 	}
-	// }
+	for {
+		line, err := csvparser.ReadLine(file)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Println("Error reading line:", err)
+			return
+		}
+		fmt.Println(line)
+	}
 }
