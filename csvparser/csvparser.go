@@ -25,15 +25,13 @@ type DataCSVParser struct {
 	}
 }
 
-// Field struct {
-// 	values   []byte
-// 	quoted   bool
-// 	closedBy string
+// PART A
+// if !c.checkQuotes() {
+// 	return "", ErrQuote
+// } else {
+// 	c.quotes.end = false
+// 	c.quotes.start = false
 // }
-
-// "", ""\n ""\r ""\r\n ""EOF
-
-// insideQoutes := false
 
 func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 	var buffer []byte
@@ -46,47 +44,30 @@ func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 				if len(buffer) > 0 {
 					break
 				}
-				if !c.checkQuotes() {
-					return "", ErrQuote
-				} else {
-					c.quotes.end = false
-					c.quotes.start = false
-				}
+				// A
 				return "", io.EOF
 			}
 			return "", err
 		}
 
 		if temp[0] == '\n' || (temp[0] == '\r' && prevChar != '\n') {
-			if !c.checkQuotes() {
-				return "", ErrQuote
-			} else {
-				c.quotes.end = false
-				c.quotes.start = false
-			}
+			// A
 			break
 		}
-		if temp[0] == ',' {
-			if !c.checkQuotes() {
-				return "", ErrQuote
-			} else {
-				c.quotes.end = false
-				c.quotes.start = false
-			}
-		}
-		if temp[0] == '"' {
-			if c.quotes.start {
-				c.quotes.end = true
-			}
-			c.quotes.start = true
-		}
+		// A
+		// if temp[0] == ',' {
+		// 	if !c.checkQuotes() {
+		// 		return "", ErrQuote
+		// 	} else {
+		// 		c.quotes.end = false
+		// 		c.quotes.start = false
+		// 	}
+		// }
 
 		buffer = append(buffer, temp[0])
 		prevChar = temp[0]
 	}
-	if len(buffer) == 0 {
-		return "", io.EOF
-	}
+
 	line := string(buffer)
 	if invalidAmountQuotes(line) {
 		return "", ErrQuote
@@ -113,6 +94,16 @@ func separateLine(line string) []string {
 	return fields
 }
 
+func (c DataCSVParser) checkQuotes() bool {
+	if c.quotes.start {
+		if !c.quotes.end {
+			return false
+		}
+		return true
+	}
+	return false
+}
+
 func invalidAmountQuotes(line string) bool {
 	counter := 0
 	for _, char := range line {
@@ -124,17 +115,4 @@ func invalidAmountQuotes(line string) bool {
 		return true
 	}
 	return false
-}
-
-func (c DataCSVParser) checkQuotes() bool {
-	if c.quotes.start {
-		if !c.quotes.end {
-			return false
-		}
-	} else {
-		if c.quotes.end {
-			return false
-		}
-	}
-	return true
 }
