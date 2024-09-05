@@ -2,6 +2,7 @@ package csvparser
 
 import (
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -13,6 +14,7 @@ type CSVParser interface {
 }
 
 var (
+	ErrField      = errors.New("unexpected value in field")
 	ErrQuote      = errors.New("excess or missing \" in quoted-field")
 	ErrFieldCount = errors.New("wrong number of fields")
 )
@@ -27,16 +29,28 @@ type DataCSVParser struct {
 }
 
 // Interface methods:
-
+//
+//	if prevChar == '"' && temp[0] == ',' && insideQuotes {
+//		return "", ErrQuote
+//	}
+//
+//	if temp[0] == ',' && insideQuotes {
+//		return "", ErrQuote
+//	}
 func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 	var buffer []byte
-	// var prevChar byte
+	var prevChar byte
 	var insideQuotes bool
+	var incorrectField string
 	for {
 		temp := make([]byte, 1)
 		_, err := r.Read(temp)
 		if err != nil {
 			if err == io.EOF {
+				if insideQuotes {
+					fmt.Println("SOMETHING")
+					return "", ErrQuote
+				}
 				if len(buffer) > 0 {
 					break
 				}
@@ -45,37 +59,35 @@ func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 			return "", err
 		}
 
-		// if prevChar == '"' && temp[0] == ',' && insideQuotes {
-		// 	return "", ErrQuote
-		// }
-		if temp[0] == ',' && insideQuotes {
-			return "", ErrQuote
-		}
 		if temp[0] == '"' {
 			insideQuotes = !insideQuotes
 		}
-
+		if temp[0] == ',' && insideQuotes && prevChar == '"' {
+			fmt.Println("End qoute ,")
+			return "", ErrQuote
+		}
 		if !insideQuotes {
 			if temp[0] == '\n' {
+				incorrectField += string(buffer) + string(temp[0])
 				break
 			}
 		}
 
 		buffer = append(buffer, temp[0])
-		// prevChar = temp[0]
+		prevChar = temp[0]
+
 	}
 
 	line := string(buffer)
-
+	if incorrectField == "\r\n" || incorrectField == "\n" {
+		return "", ErrField
+	}
 	c.fields = separateLine(line)
 	c.line = line
 	return line, nil
 }
 
 // Utils function \ /
-//
-//	|
-//	^
 func separateLine(line string) []string {
 	tempStr := ""
 	fields := []string{}
