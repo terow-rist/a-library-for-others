@@ -17,7 +17,7 @@ func main() {
 	defer file.Close()
 
 	csvparser := csvparser.DataCSVParser{}
-
+	ind := 1
 	for {
 		line, err := csvparser.ReadLine(file)
 		if err != nil {
@@ -27,6 +27,7 @@ func main() {
 			fmt.Println("Error reading line:", err)
 			return
 		}
-		fmt.Println(line)
+		fmt.Println("Line", ind, ":", line)
+		ind++
 	}
 }

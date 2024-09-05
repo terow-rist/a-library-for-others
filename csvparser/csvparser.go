@@ -5,6 +5,7 @@ import (
 	"io"
 )
 
+// Struct & interface
 type CSVParser interface {
 	ReadLine(r io.Reader) (string, error)
 	GetField(n int) (string, error)
@@ -19,23 +20,18 @@ var (
 type DataCSVParser struct {
 	fields []string
 	line   string
-	quotes struct {
-		start bool
-		end   bool
-	}
+	// quotes struct {
+	// 	start bool
+	// 	end   bool
+	// }
 }
 
-// PART A
-// if !c.checkQuotes() {
-// 	return "", ErrQuote
-// } else {
-// 	c.quotes.end = false
-// 	c.quotes.start = false
-// }
+// Interface methods:
 
 func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 	var buffer []byte
-	var prevChar byte
+	// var prevChar byte
+	var insideQuotes bool
 	for {
 		temp := make([]byte, 1)
 		_, err := r.Read(temp)
@@ -44,40 +40,42 @@ func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 				if len(buffer) > 0 {
 					break
 				}
-				// A
 				return "", io.EOF
 			}
 			return "", err
 		}
 
-		if temp[0] == '\n' || (temp[0] == '\r' && prevChar != '\n') {
-			// A
-			break
-		}
-		// A
-		// if temp[0] == ',' {
-		// 	if !c.checkQuotes() {
-		// 		return "", ErrQuote
-		// 	} else {
-		// 		c.quotes.end = false
-		// 		c.quotes.start = false
-		// 	}
+		// if prevChar == '"' && temp[0] == ',' && insideQuotes {
+		// 	return "", ErrQuote
 		// }
+		if temp[0] == ',' && insideQuotes {
+			return "", ErrQuote
+		}
+		if temp[0] == '"' {
+			insideQuotes = !insideQuotes
+		}
+
+		if !insideQuotes {
+			if temp[0] == '\n' {
+				break
+			}
+		}
 
 		buffer = append(buffer, temp[0])
-		prevChar = temp[0]
+		// prevChar = temp[0]
 	}
 
 	line := string(buffer)
-	if invalidAmountQuotes(line) {
-		return "", ErrQuote
-	}
 
 	c.fields = separateLine(line)
 	c.line = line
 	return line, nil
 }
 
+// Utils function \ /
+//
+//	|
+//	^
 func separateLine(line string) []string {
 	tempStr := ""
 	fields := []string{}
@@ -92,16 +90,6 @@ func separateLine(line string) []string {
 		fields = append(fields, tempStr)
 	}
 	return fields
-}
-
-func (c DataCSVParser) checkQuotes() bool {
-	if c.quotes.start {
-		if !c.quotes.end {
-			return false
-		}
-		return true
-	}
-	return false
 }
 
 func invalidAmountQuotes(line string) bool {
