@@ -14,7 +14,6 @@ type CSVParser interface {
 }
 
 var (
-	ErrField      = errors.New("unexpected value in field")
 	ErrQuote      = errors.New("excess or missing \" in quoted-field")
 	ErrFieldCount = errors.New("wrong number of fields")
 )
@@ -22,26 +21,13 @@ var (
 type DataCSVParser struct {
 	fields []string
 	line   string
-	// quotes struct {
-	// 	start bool
-	// 	end   bool
-	// }
 }
 
 // Interface methods:
-//
-//	if prevChar == '"' && temp[0] == ',' && insideQuotes {
-//		return "", ErrQuote
-//	}
-//
-//	if temp[0] == ',' && insideQuotes {
-//		return "", ErrQuote
-//	}
 func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 	var buffer []byte
 	var prevChar byte
 	var insideQuotes bool
-	var incorrectField string
 	for {
 		temp := make([]byte, 1)
 		_, err := r.Read(temp)
@@ -68,7 +54,6 @@ func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 		}
 		if !insideQuotes {
 			if temp[0] == '\n' {
-				incorrectField += string(buffer) + string(temp[0])
 				break
 			}
 		}
@@ -78,10 +63,11 @@ func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 
 	}
 
-	line := string(buffer)
-	if incorrectField == "\r\n" || incorrectField == "\n" {
-		return "", ErrField
-	}
+	line := quoteFix(string(buffer))
+	// if !quoteCheck(line) {
+	// 	fmt.Println("wf")
+	// 	return "", ErrQuote
+	// }
 	c.fields = separateLine(line)
 	c.line = line
 	return line, nil
@@ -104,15 +90,49 @@ func separateLine(line string) []string {
 	return fields
 }
 
-func invalidAmountQuotes(line string) bool {
-	counter := 0
-	for _, char := range line {
-		if char == '"' {
-			counter++
+func quoteFix(line string) string {
+	var newLine string
+	for i := 0; i < len(line); i++ {
+		if line[i] == '"' {
+			if i == 0 {
+				newLine += "\""
+				continue
+			} else if line[i-1] == '"' {
+				continue
+			}
 		}
+		newLine += string(line[i])
 	}
-	if counter%2 != 0 {
-		return true
-	}
-	return false
+	return newLine
 }
+
+// func quoteCheck(line string) bool {
+// 	var field string
+// 	var openQuote bool
+// 	for i := 0; i < len(line); i++ {
+// 		if line[i] == '"' {
+// 			openQuote = !openQuote
+// 		}
+// 		if line[i] == ',' && !openQuote {
+// 			for j, char := range field {
+// 				if char == '"' && j != 0 && j != len(field)-1 {
+// 					return false
+// 				}
+// 			}
+// 			field = ""
+// 			continue
+// 		}
+// 		field += string(line[i])
+// 	}
+// 	if len(field) > 0 {
+// 		for j, char := range field {
+// 			if char == '"' && j != 0 && j != len(field)-1 {
+// 				return false
+// 			}
+// 		}
+// 	}
+// 	if openQuote {
+// 		return false
+// 	}
+// 	return true
+// }
