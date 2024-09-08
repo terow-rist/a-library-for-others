@@ -2,7 +2,6 @@ package csvparser
 
 import (
 	"errors"
-	"fmt"
 	"io"
 )
 
@@ -19,14 +18,13 @@ var (
 )
 
 type DataCSVParser struct {
-	fields []string
 	line   string
+	fields []string
 }
 
 // Interface methods:
-func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
+func (c *DataCSVParser) ReadLine(r io.Reader) (string, error) {
 	var buffer []byte
-	var prevChar byte
 	var insideQuotes bool
 	for {
 		temp := make([]byte, 1)
@@ -34,7 +32,6 @@ func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 		if err != nil {
 			if err == io.EOF {
 				if insideQuotes {
-					fmt.Println("SOMETHING")
 					return "", ErrQuote
 				}
 				if len(buffer) > 0 {
@@ -48,10 +45,7 @@ func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 		if temp[0] == '"' {
 			insideQuotes = !insideQuotes
 		}
-		if temp[0] == ',' && insideQuotes && prevChar == '"' {
-			fmt.Println("End qoute ,")
-			return "", ErrQuote
-		}
+
 		if !insideQuotes {
 			if temp[0] == '\n' {
 				break
@@ -59,34 +53,64 @@ func (c DataCSVParser) ReadLine(r io.Reader) (string, error) {
 		}
 
 		buffer = append(buffer, temp[0])
-		prevChar = temp[0]
 
 	}
 
 	line := quoteFix(string(buffer))
-	// if !quoteCheck(line) {
-	// 	fmt.Println("wf")
-	// 	return "", ErrQuote
-	// }
 	c.fields = separateLine(line)
 	c.line = line
 	return line, nil
 }
 
+func (c *DataCSVParser) GetField(n int) (string, error) {
+	fields := c.fields
+	if n < 0 || n >= len(fields) {
+		return "", ErrFieldCount
+	}
+	field := fields[n]
+	if len(field) > 1 && field[0] == '"' && field[len(field)-1] == '"' {
+		return field[1 : len(field)-1], nil
+	}
+
+	if field[len(field)-1] == '\n' || field[len(field)-1] == '\r' {
+		return field[1 : len(field)-2], nil
+	}
+	return field, nil
+}
+
+func (c *DataCSVParser) GetNumberOfFields() int {
+	return len(c.fields)
+}
+
 // Utils function \ /
 func separateLine(line string) []string {
-	tempStr := ""
-	fields := []string{}
+	var tempStr string
+	var fields []string
+	var openQuotes bool
+
 	for i := 0; i < len(line); i++ {
-		if line[i] == ',' {
-			fields = append(fields, tempStr)
-			tempStr = ""
+		switch line[i] {
+		case '"':
+			openQuotes = !openQuotes
+			tempStr += string(line[i])
+
+		case ',':
+			if openQuotes {
+				tempStr += string(line[i])
+			} else {
+				fields = append(fields, tempStr)
+				tempStr = ""
+			}
+
+		default:
+			tempStr += string(line[i])
 		}
-		tempStr += string(line[i])
 	}
+
 	if tempStr != "" {
 		fields = append(fields, tempStr)
 	}
+
 	return fields
 }
 
@@ -105,34 +129,3 @@ func quoteFix(line string) string {
 	}
 	return newLine
 }
-
-// func quoteCheck(line string) bool {
-// 	var field string
-// 	var openQuote bool
-// 	for i := 0; i < len(line); i++ {
-// 		if line[i] == '"' {
-// 			openQuote = !openQuote
-// 		}
-// 		if line[i] == ',' && !openQuote {
-// 			for j, char := range field {
-// 				if char == '"' && j != 0 && j != len(field)-1 {
-// 					return false
-// 				}
-// 			}
-// 			field = ""
-// 			continue
-// 		}
-// 		field += string(line[i])
-// 	}
-// 	if len(field) > 0 {
-// 		for j, char := range field {
-// 			if char == '"' && j != 0 && j != len(field)-1 {
-// 				return false
-// 			}
-// 		}
-// 	}
-// 	if openQuote {
-// 		return false
-// 	}
-// 	return true
-// }

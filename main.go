@@ -29,5 +29,15 @@ func main() {
 		}
 		fmt.Println("Line", ind, ":", line)
 		ind++
+		var n int
+		fmt.Scanf("%d", &n)
+		field, errf := csvparser.GetField(n)
+		if errf != nil {
+			fmt.Println("Error reading field VIA line:", errf)
+			return
+		}
+		fmt.Println("Got field: ", n, field)
+		fmt.Println("GetNumbeROfFields", csvparser.GetNumberOfFields())
+		fmt.Println("-----------------------")
 	}
 }
