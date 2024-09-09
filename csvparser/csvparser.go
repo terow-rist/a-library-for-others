@@ -72,13 +72,16 @@ func (c *DataCSVParser) GetField(n int) (string, error) {
 		return field[1 : len(field)-1], nil
 	}
 
-	if field[len(field)-1] == '\n' || field[len(field)-1] == '\r' {
-		return field[1 : len(field)-2], nil
+	if len(field) > 2 && field[0] == '"' {
+		if (field[len(field)-1] == '\n' || field[len(field)-1] == '\r') && field[len(field)-2] == '"' {
+			return field[1 : len(field)-2], nil
+		}
 	}
 	return field, nil
 }
 
 func (c *DataCSVParser) GetNumberOfFields() int {
+	// if c.
 	return len(c.fields)
 }
 
@@ -107,9 +110,8 @@ func separateLine(line string) []string {
 		}
 	}
 
-	if tempStr != "" {
-		fields = append(fields, tempStr)
-	}
+	// Add the last field even if it's empty
+	fields = append(fields, tempStr)
 
 	return fields
 }

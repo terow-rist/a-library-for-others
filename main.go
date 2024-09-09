@@ -22,6 +22,7 @@ func main() {
 		line, err := csvparser.ReadLine(file)
 		if err != nil {
 			if err == io.EOF {
+				fmt.Println(csvparser.GetNumberOfFields())
 				break
 			}
 			fmt.Println("Error reading line:", err)
@@ -36,7 +37,7 @@ func main() {
 			fmt.Println("Error reading field VIA line:", errf)
 			return
 		}
-		fmt.Println("Got field: ", n, field)
+		fmt.Println("Got field: ", field)
 		fmt.Println("GetNumbeROfFields", csvparser.GetNumberOfFields())
 		fmt.Println("-----------------------")
 	}
