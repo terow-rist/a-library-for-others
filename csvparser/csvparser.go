@@ -72,7 +72,7 @@ func (c *DataCSVParser) GetField(n int) (string, error) {
 		return field[1 : len(field)-1], nil
 	}
 
-	if len(field) > 2 && field[0] == '"' {
+	if len(field) >= 2 && field[0] == '"' {
 		if (field[len(field)-1] == '\n' || field[len(field)-1] == '\r') && field[len(field)-2] == '"' {
 			return field[1 : len(field)-2], nil
 		}
