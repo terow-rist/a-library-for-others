@@ -87,7 +87,7 @@ func (c *DataCSVParser) ReadLine(r io.Reader) (string, error) {
 	}
 
 	line := quoteFix(string(buffer))
-	c.fields = separateLine(line)
+	c.fields = separateLine(string(buffer))
 	c.line = line
 	return line, nil
 }
@@ -121,24 +121,39 @@ func separateLine(line string) []string {
 	var openQuotes bool
 
 	for i := 0; i < len(line); i++ {
-		switch line[i] {
+		char := line[i]
+
+		switch char {
 		case '"':
-			openQuotes = !openQuotes
-			tempStr += string(line[i])
+			// Handle opening and closing of quotes
+			if openQuotes && i+1 < len(line) && line[i+1] == '"' {
+				// If it's a double quote within a quoted field, add a single quote
+				tempStr += `"`
+				i++ // Skip the next quote
+			} else {
+				// Toggle the openQuotes state
+				openQuotes = !openQuotes
+			}
 
 		case ',':
+			// If we're inside quotes, consider the comma as part of the field
 			if openQuotes {
-				tempStr += string(line[i])
+				tempStr += string(char)
 			} else {
+				// If not inside quotes, the comma marks the end of a field
 				fields = append(fields, tempStr)
 				tempStr = ""
 			}
 
 		default:
-			tempStr += string(line[i])
+			// Add the character to the current field buffer
+			tempStr += string(char)
 		}
 	}
+
+	// Append the last field after the loop finishes
 	fields = append(fields, tempStr)
+
 	return fields
 }
 

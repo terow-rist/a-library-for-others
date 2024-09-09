@@ -8,9 +8,9 @@ import (
 )
 
 func main() {
-	content := ",John,\r\n,ofkomcs,escsc,\n,dmrdmrvr,\r,sefsvm,"
+	content := "\r,John,\r,ofkomcs,escsc,\r,dmrdmrvr,\r,sefsvm,\r\n "
 	CreateFile(content)
-	file, err := os.Open("output.csv")
+	file, err := os.Open("example.csv")
 	if err != nil {
 		fmt.Println("Error opening file:", err)
 		return
