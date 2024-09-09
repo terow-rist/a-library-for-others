@@ -1,15 +1,16 @@
 package main
 
 import (
+	"a-library-for-others/csvparser"
 	"fmt"
 	"io"
 	"os"
-
-	"a-library-for-others/csvparser"
 )
 
 func main() {
-	file, err := os.Open("example.csv")
+	content := ",John,\r\n,ofkomcs,escsc,\n,dmrdmrvr,\r,sefsvm,"
+	CreateFile(content)
+	file, err := os.Open("output.csv")
 	if err != nil {
 		fmt.Println("Error opening file:", err)
 		return
@@ -43,5 +44,22 @@ func main() {
 		}
 		fmt.Println("-----------------------")
 
+	}
+}
+
+func CreateFile(content string) {
+	file, err := os.Create("output.csv")
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	// Always remember to close the file after you're done
+	defer file.Close()
+
+	// Write the string content to the file
+	_, err = file.WriteString(content)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
 	}
 }

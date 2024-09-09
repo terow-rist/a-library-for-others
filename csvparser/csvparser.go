@@ -18,8 +18,10 @@ var (
 )
 
 type DataCSVParser struct {
-	line   string
-	fields []string
+	line        string
+	fields      []string
+	prevChar    byte
+	eatenSlashR bool
 }
 
 // Interface methods:
@@ -27,6 +29,10 @@ func (c *DataCSVParser) ReadLine(r io.Reader) (string, error) {
 	var buffer []byte
 	var insideQuotes bool
 	for {
+		if c.eatenSlashR {
+			buffer = append(buffer, c.prevChar)
+			c.eatenSlashR = false
+		}
 		temp := make([]byte, 1)
 		_, err := r.Read(temp)
 		if err != nil {
@@ -42,18 +48,42 @@ func (c *DataCSVParser) ReadLine(r io.Reader) (string, error) {
 			return "", err
 		}
 
-		if temp[0] == '"' {
+		char := temp[0]
+
+		// Handle the quotes logic
+		if char == '"' {
 			insideQuotes = !insideQuotes
 		}
 
+		// Handle line breaks outside of quotes
 		if !insideQuotes {
-			if temp[0] == '\n' {
+			if char == '\r' {
+				temp = make([]byte, 1)
+				_, err := r.Read(temp)
+				if err != nil {
+					if err == io.EOF {
+						if len(buffer) > 0 {
+							break
+						}
+						return "", io.EOF
+					}
+					return "", err
+				}
+				if temp[0] == '\n' {
+					break
+				} else {
+					c.prevChar = temp[0]
+					c.eatenSlashR = true
+					break
+				}
+			}
+			if char == '\n' {
 				break
 			}
 		}
 
-		buffer = append(buffer, temp[0])
-
+		buffer = append(buffer, char)
+		c.prevChar = char
 	}
 
 	line := quoteFix(string(buffer))
@@ -72,7 +102,7 @@ func (c *DataCSVParser) GetField(n int) (string, error) {
 		return field[1 : len(field)-1], nil
 	}
 
-	if len(field) >= 2 && field[0] == '"' {
+	if len(field) > 2 && field[0] == '"' {
 		if (field[len(field)-1] == '\n' || field[len(field)-1] == '\r') && field[len(field)-2] == '"' {
 			return field[1 : len(field)-2], nil
 		}
@@ -109,7 +139,6 @@ func separateLine(line string) []string {
 		}
 	}
 	fields = append(fields, tempStr)
-
 	return fields
 }
 
