@@ -81,7 +81,6 @@ func (c *DataCSVParser) GetField(n int) (string, error) {
 }
 
 func (c *DataCSVParser) GetNumberOfFields() int {
-	// if c.
 	return len(c.fields)
 }
 
@@ -109,8 +108,6 @@ func separateLine(line string) []string {
 			tempStr += string(line[i])
 		}
 	}
-
-	// Add the last field even if it's empty
 	fields = append(fields, tempStr)
 
 	return fields
