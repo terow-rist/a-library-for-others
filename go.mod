@@ -1,3 +1,3 @@
 module a-library-for-others
 
-go 1.22.6
+go 1.23

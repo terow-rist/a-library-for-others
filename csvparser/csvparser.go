@@ -50,12 +50,10 @@ func (c *DataCSVParser) ReadLine(r io.Reader) (string, error) {
 
 		char := temp[0]
 
-		// Handle the quotes logic
 		if char == '"' {
 			insideQuotes = !insideQuotes
 		}
 
-		// Handle line breaks outside of quotes
 		if !insideQuotes {
 			if char == '\r' {
 				temp = make([]byte, 1)
@@ -87,7 +85,7 @@ func (c *DataCSVParser) ReadLine(r io.Reader) (string, error) {
 	}
 
 	line := quoteFix(string(buffer))
-	c.fields = separateLine(string(buffer))
+	c.fields = separateLine(line)
 	c.line = line
 	return line, nil
 }
@@ -97,16 +95,15 @@ func (c *DataCSVParser) GetField(n int) (string, error) {
 	if n < 0 || n >= len(fields) {
 		return "", ErrFieldCount
 	}
+
 	field := fields[n]
+
+	field = trimWhitespace(field)
+
 	if len(field) > 1 && field[0] == '"' && field[len(field)-1] == '"' {
 		return field[1 : len(field)-1], nil
 	}
 
-	if len(field) > 2 && field[0] == '"' {
-		if (field[len(field)-1] == '\n' || field[len(field)-1] == '\r') && field[len(field)-2] == '"' {
-			return field[1 : len(field)-2], nil
-		}
-	}
 	return field, nil
 }
 
@@ -125,33 +122,22 @@ func separateLine(line string) []string {
 
 		switch char {
 		case '"':
-			// Handle opening and closing of quotes
-			if openQuotes && i+1 < len(line) && line[i+1] == '"' {
-				// If it's a double quote within a quoted field, add a single quote
-				tempStr += `"`
-				i++ // Skip the next quote
-			} else {
-				// Toggle the openQuotes state
-				openQuotes = !openQuotes
-			}
+			openQuotes = !openQuotes
+			tempStr += string(line[i])
 
 		case ',':
-			// If we're inside quotes, consider the comma as part of the field
 			if openQuotes {
 				tempStr += string(char)
 			} else {
-				// If not inside quotes, the comma marks the end of a field
 				fields = append(fields, tempStr)
 				tempStr = ""
 			}
 
 		default:
-			// Add the character to the current field buffer
 			tempStr += string(char)
 		}
 	}
 
-	// Append the last field after the loop finishes
 	fields = append(fields, tempStr)
 
 	return fields
@@ -171,4 +157,18 @@ func quoteFix(line string) string {
 		newLine += string(line[i])
 	}
 	return newLine
+}
+
+func trimWhitespace(s string) string {
+	start, end := 0, len(s)-1
+
+	for start <= end && (s[start] == ' ' || s[start] == '\n' || s[start] == '\r' || s[start] == '\t') {
+		start++
+	}
+
+	for end >= start && (s[end] == ' ' || s[end] == '\n' || s[end] == '\r' || s[end] == '\t') {
+		end--
+	}
+
+	return s[start : end+1]
 }

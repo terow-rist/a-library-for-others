@@ -1,15 +1,14 @@
 package main
 
 import (
+	"a-library-for-others/csvparser"
 	"fmt"
 	"io"
 	"os"
-
-	"a-library-for-others/csvparser"
 )
 
 func main() {
-	content := "\r,John,\r,ofkomcs,escsc,\r,dmrdmrvr,\r,sefsvm,\r\n "
+	content := "John\r\n122,ofkomcs,escsc,,dmrdmrvr,,sefsvm, "
 	CreateFile(content)
 	file, err := os.Open("example.csv")
 	if err != nil {
