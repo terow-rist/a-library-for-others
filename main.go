@@ -1,10 +1,11 @@
 package main
 
 import (
-	"a-library-for-others/csvparser"
 	"fmt"
 	"io"
 	"os"
+
+	"a-library-for-others/csvparser"
 )
 
 func main() {
